@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "../Projectile/MagicProjectile.h"
 #include "../Components/InterActionComponent.h"
+#include "../Components/AttributeComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Camera/CameraComponent.h"
 
@@ -28,6 +29,8 @@ ABaseCharacter::ABaseCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	InterActionComp = CreateDefaultSubobject<UInterActionComponent>("InterActionComp");
+
+	AttributeComp = CreateDefaultSubobject<UAttributeComponent>("AttributeComp");
 }
 
 // Called when the game starts or when spawned
@@ -88,13 +91,17 @@ void ABaseCharacter::PrimaryAttack()
 
 void ABaseCharacter::PrimaryAttack_TimeElapsed()
 {
-	FVector SocketLocation = GetMesh()->GetSocketLocation(FName("Muzzle_01"));
-	FTransform SpawnTM = FTransform(GetControlRotation(), SocketLocation);
+	if (ensure(ProjectileClass))
+	{
+		FVector SocketLocation = GetMesh()->GetSocketLocation(FName("Muzzle_01"));
+		FTransform SpawnTM = FTransform(GetControlRotation(), SocketLocation);
 
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	SpawnParams.Instigator = this;
-	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParams.Instigator = this;
+		GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
+	}
+	
 }
 
 void ABaseCharacter::PrimaryInteract()

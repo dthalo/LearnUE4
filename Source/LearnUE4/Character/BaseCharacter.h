@@ -36,6 +36,9 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	class UInterActionComponent* InterActionComp;
 
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
+	class UAttributeComponent* AttributeComp;
+
 	virtual void MoveForward(float Value);
 	virtual void MoveRight(float Value);
 	virtual void PrimaryAttack();
