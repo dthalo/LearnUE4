@@ -58,6 +58,8 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &ABaseCharacter::PrimaryAttack);
+	PlayerInputComponent->BindAction("BlackHoleAttack", IE_Pressed, this, &ABaseCharacter::BlackHoleAttack);
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &ABaseCharacter::Dash);
 	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &ABaseCharacter::PrimaryInteract);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 }
@@ -82,16 +84,19 @@ void ABaseCharacter::MoveRight(float Value)
 
 void ABaseCharacter::PrimaryAttack()
 {
-	if (GetMesh()->DoesSocketExist(FName("Muzzle_01")))
+	/*if (GetMesh()->DoesSocketExist(FName("Muzzle_01")))
 	{
 		PlayAnimMontage(AttackMontage);
 		GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &ABaseCharacter::PrimaryAttack_TimeElapsed, 0.2f);
-	}
+	}*/
+
+	PlayAnimMontage(AttackMontage);
+	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack, this, &ABaseCharacter::PrimaryAttack_TimeElapsed, AttackAnimDelay);
 }
 
 void ABaseCharacter::PrimaryAttack_TimeElapsed()
 {
-	if (ensure(ProjectileClass))
+	/*if (ensure(ProjectileClass))
 	{
 		FVector SocketLocation = GetMesh()->GetSocketLocation(FName("Muzzle_01"));
 		FTransform SpawnTM = FTransform(GetControlRotation(), SocketLocation);
@@ -100,8 +105,8 @@ void ABaseCharacter::PrimaryAttack_TimeElapsed()
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnParams.Instigator = this;
 		GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
-	}
-	
+	}*/
+	SpawnProjectile(ProjectileClass);
 }
 
 void ABaseCharacter::PrimaryInteract()
@@ -109,5 +114,68 @@ void ABaseCharacter::PrimaryInteract()
 	if (InterActionComp)
 	{
 		InterActionComp->PrimaryInteract();
+	}
+}
+
+
+void ABaseCharacter::BlackHoleAttack()
+{
+	PlayAnimMontage(AttackMontage);
+	GetWorldTimerManager().SetTimer(TimerHandle_BlackHoleAttack, this, &ABaseCharacter::BlackHoleAttack_TimeElapsed, AttackAnimDelay);
+}
+
+void ABaseCharacter::BlackHoleAttack_TimeElapsed()
+{
+	SpawnProjectile(BlackHoleProjectileClass);
+}
+
+void ABaseCharacter::Dash()
+{
+	PlayAnimMontage(AttackMontage);
+	GetWorldTimerManager().SetTimer(TimerHandle_Dash, this, &ABaseCharacter::Dash_TimeElapsed, AttackAnimDelay);
+}
+
+void ABaseCharacter::Dash_TimeElapsed()
+{
+	SpawnProjectile(DashProjectileClass);
+}
+
+void ABaseCharacter::SpawnProjectile(TSubclassOf<AActor> ClassToSpawn)
+{
+	if (ensureAlways(ClassToSpawn))
+	{
+		FVector HandleLocation = GetMesh()->GetSocketLocation("Muzzle_01");
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParams.Instigator = this;
+
+		FCollisionShape Shape;
+		Shape.SetSphere(20.0f);
+
+		//Ignore Player
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+
+		FCollisionObjectQueryParams ObjParams;
+		ObjParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+		ObjParams.AddObjectTypesToQuery(ECC_WorldStatic);
+		ObjParams.AddObjectTypesToQuery(ECC_Pawn);
+		
+		FVector TraceStart = CameraComp->GetComponentLocation();
+		FVector TraceEnd = CameraComp->GetComponentLocation() + GetControlRotation().Vector() * 5000;
+		
+		FHitResult Hit;
+		if (GetWorld()->SweepSingleByObjectType(Hit, TraceStart, TraceEnd, FQuat::Identity, ObjParams, Shape, Params))
+		{
+			TraceEnd = Hit.ImpactPoint;
+		}
+
+		FRotator ProjRotation = FRotationMatrix::MakeFromX(TraceEnd - HandleLocation).Rotator();
+
+		FTransform SpawnTM = FTransform(ProjRotation, HandleLocation);
+
+		GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnTM, SpawnParams);
+
 	}
 }
