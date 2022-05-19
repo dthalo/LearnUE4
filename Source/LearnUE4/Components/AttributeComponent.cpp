@@ -24,3 +24,8 @@ bool UAttributeComponent::ApplyHealthChange(float Delta)
 	return true;
 }
 
+bool UAttributeComponent::IsAlive() const
+{
+	return Health > 0;
+}
+

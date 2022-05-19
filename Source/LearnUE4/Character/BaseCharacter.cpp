@@ -33,6 +33,12 @@ ABaseCharacter::ABaseCharacter()
 	AttributeComp = CreateDefaultSubobject<UAttributeComponent>("AttributeComp");
 }
 
+void ABaseCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	AttributeComp->OnHealthChanged.AddDynamic(this, &ABaseCharacter::OnHealthChanged);
+}
+
 // Called when the game starts or when spawned
 void ABaseCharacter::BeginPlay()
 {
@@ -177,5 +183,14 @@ void ABaseCharacter::SpawnProjectile(TSubclassOf<AActor> ClassToSpawn)
 
 		GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnTM, SpawnParams);
 
+	}
+}
+
+void ABaseCharacter::OnHealthChanged(AActor* InstigatorActor, class UAttributeComponent* OwningComp, float NewHealth, float Delta)
+{
+	if (NewHealth <= 0.0f && Delta < 0)
+	{
+		auto* PC = Cast<APlayerController>(GetController());
+		DisableInput(PC);
 	}
 }
